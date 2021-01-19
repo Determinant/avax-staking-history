@@ -1,0 +1,85 @@
+diff --git a/vms/platformvm/blocks/executor/block.go b/vms/platformvm/blocks/executor/block.go
+index 44636a250..1e3734bb2 100644
+--- a/vms/platformvm/blocks/executor/block.go
++++ b/vms/platformvm/blocks/executor/block.go
+@@ -28,6 +28,7 @@ type Block struct {
+ }
+ 
+ func (b *Block) Verify(context.Context) error {
++	b.manager.ctx.Log.Info(fmt.Sprintf("csv ,,,,,,# block,%d\n", b.Height()))
+ 	blkID := b.ID()
+ 	if _, ok := b.manager.blkIDToState[blkID]; ok {
+ 		// This block has already been verified.
+diff --git a/vms/platformvm/txs/executor/proposal_tx_executor.go b/vms/platformvm/txs/executor/proposal_tx_executor.go
+index eddd3921e..676dcef02 100644
+--- a/vms/platformvm/txs/executor/proposal_tx_executor.go
++++ b/vms/platformvm/txs/executor/proposal_tx_executor.go
+@@ -17,6 +17,7 @@ import (
+ 	"github.com/ava-labs/avalanchego/vms/platformvm/reward"
+ 	"github.com/ava-labs/avalanchego/vms/platformvm/state"
+ 	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
++	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
+ )
+ 
+ const (
+@@ -43,6 +44,12 @@ var (
+ 	ErrAdvanceTimeTxIssuedAfterBanff = errors.New("AdvanceTimeTx issued after Banff")
+ )
+ 
++func getZulu(t time.Time) string {
++	loc, _ := time.LoadLocation("UTC")
++	t = t.In(loc)
++	return t.Format(time.RFC3339)
++}
++
+ type ProposalTxExecutor struct {
+ 	// inputs, to be filled before visitor methods are called
+ 	*Backend
+@@ -389,6 +396,11 @@ func (e *ProposalTxExecutor) RewardValidatorTx(tx *txs.RewardValidatorTx) error
+ 		if stakerToRemove.PotentialReward > 0 {
+ 			validationRewardsOwner := uStakerTx.ValidationRewardsOwner()
+ 			outIntf, err := e.Fx.CreateOutput(stakerToRemove.PotentialReward, validationRewardsOwner)
++			txID := tx.TxID.String()
++			owner, _ := validationRewardsOwner.(*secp256k1fx.OutputOwners)
++			addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++			nodeID := uStakerTx.NodeID().String()
++			e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,staking,%d,%s,%s,,\n", txID, addr, stakerToRemove.PotentialReward, nodeID, getZulu(currentChainTime)))
+ 			if err != nil {
+ 				return fmt.Errorf("failed to create output: %w", err)
+ 			}
+@@ -424,6 +436,11 @@ func (e *ProposalTxExecutor) RewardValidatorTx(tx *txs.RewardValidatorTx) error
+ 		if delegateeReward > 0 {
+ 			delegationRewardsOwner := uStakerTx.DelegationRewardsOwner()
+ 			outIntf, err := e.Fx.CreateOutput(delegateeReward, delegationRewardsOwner)
++			txID := tx.TxID.String()
++			owner, _ := delegationRewardsOwner.(*secp256k1fx.OutputOwners)
++			addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++			nodeID := uStakerTx.NodeID().String()
++			e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentChainTime)))
+ 			if err != nil {
+ 				return fmt.Errorf("failed to create output: %w", err)
+ 			}
+@@ -529,6 +546,11 @@ func (e *ProposalTxExecutor) RewardValidatorTx(tx *txs.RewardValidatorTx) error
+ 		if delegatorReward > 0 {
+ 			rewardsOwner := uStakerTx.RewardsOwner()
+ 			outIntf, err := e.Fx.CreateOutput(delegatorReward, rewardsOwner)
++			txID := tx.TxID.String()
++			owner, _ := rewardsOwner.(*secp256k1fx.OutputOwners)
++			addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++			nodeID := uStakerTx.NodeID().String()
++			e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegator,%d,%s,%s,,\n", txID, addr, delegatorReward, nodeID, getZulu(currentChainTime)))
+ 			if err != nil {
+ 				return fmt.Errorf("failed to create output: %w", err)
+ 			}
+@@ -582,6 +604,11 @@ func (e *ProposalTxExecutor) RewardValidatorTx(tx *txs.RewardValidatorTx) error
+ 				// [delegateeReward] immediately.
+ 				delegationRewardsOwner := vdrTx.DelegationRewardsOwner()
+ 				outIntf, err := e.Fx.CreateOutput(delegateeReward, delegationRewardsOwner)
++				txID := tx.TxID.String()
++				owner, _ := delegationRewardsOwner.(*secp256k1fx.OutputOwners)
++				addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++				nodeID := uStakerTx.NodeID().String()
++				e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentChainTime)))
+ 				if err != nil {
+ 					return fmt.Errorf("failed to create output: %w", err)
+ 				}
