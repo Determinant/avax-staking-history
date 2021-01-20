@@ -1,4 +1,5 @@
 Disclaimer: I extracted this by injecting printing statements in the P-Chain code. There is no warranty for accuracy and it is all your responsibility to use this data.,,,,,
+Tx ID,Address,Reward Type,nAVAX,Node,Time
 jWgE5KiiCejNYbYGDzhu9WAXrAdgwav9EXuycNVdB62rSU4tH,P-avax1a45dgarmwutzng4r25l25lnfltzetsrcjyp0m2,staking,21173514157,NodeID-2JdttE7aUb19pgp9rJifgrkbHpv79cCGx,2020-10-06T03:34:14Z
 nHKNSEj6oXf9vHcp6eaziZdafw6HrjySGQv1qUPRcME1PTZmj,P-avax1efz8chevs4pcr3qd29dzgyuwajkva78f892066,staking,68774794738,NodeID-Eef8RycdBGmSe9tCZ1biGTLLYrkCHZPUS,2020-10-06T04:16:45Z
 kKF8bf93tMDtRb7Tu28nm8gpkCxGmq3S1YwYacaK6Q9s1PHJJ,P-avax1ztjqu66j88ccrn297nm86d44ss69qakup88pxa,staking,5474935398011,NodeID-4gTwepTF5fcacXB7gdYZLTtfSFsYh4faj,2020-10-06T04:49:07Z
