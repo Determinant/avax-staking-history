@@ -1,0 +1,75 @@
+diff --git a/vms/platformvm/proposal_block.go b/vms/platformvm/proposal_block.go
+index 97043862..5f644dd6 100644
+--- a/vms/platformvm/proposal_block.go
++++ b/vms/platformvm/proposal_block.go
+@@ -131,6 +131,9 @@ func (pb *ProposalBlock) Verify() error {
+ 	txID := tx.ID()
+ 
+ 	var err TxError
++	if _, ok := tx.(*UnsignedRewardValidatorTx); ok {
++		pb.vm.Ctx.Log.Info("csv # block,%d,,,,\n", pb.Height())
++	}
+ 	pb.onCommitDB, pb.onAbortDB, pb.onCommitFunc, pb.onAbortFunc, err = tx.SemanticVerify(pb.vm, pdb, &pb.Tx)
+ 	if err != nil {
+ 		pb.vm.droppedTxCache.Put(txID, err.Error()) // cache tx as dropped
+diff --git a/vms/platformvm/reward_validator_tx.go b/vms/platformvm/reward_validator_tx.go
+index 58e2426c..4d801e74 100644
+--- a/vms/platformvm/reward_validator_tx.go
++++ b/vms/platformvm/reward_validator_tx.go
+@@ -14,6 +14,7 @@ import (
+ 	"github.com/ava-labs/avalanchego/utils/constants"
+ 	"github.com/ava-labs/avalanchego/vms/components/avax"
+ 	"github.com/ava-labs/avalanchego/vms/components/verify"
++	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
+ 
+ 	safemath "github.com/ava-labs/avalanchego/utils/math"
+ )
+@@ -45,6 +46,12 @@ type UnsignedRewardValidatorTx struct {
+ 	shouldPreferCommit bool
+ }
+ 
++func getZulu(t time.Time) string {
++	loc, _ := time.LoadLocation("UTC")
++	t = t.In(loc)
++	return t.Format(time.RFC3339)
++}
++
+ // SemanticVerify this transaction performs a valid state transition.
+ //
+ // The current validating set must have at least one member.
+@@ -149,6 +156,11 @@ func (tx *UnsignedRewardValidatorTx) SemanticVerify(
+ 		// Provide the reward here
+ 		if stakerTx.Reward > 0 {
+ 			outIntf, err := vm.fx.CreateOutput(stakerTx.Reward, uStakerTx.RewardsOwner)
++			txID := uStakerTx.ID().String()
++			owner, _ := uStakerTx.RewardsOwner.(*secp256k1fx.OutputOwners)
++			addr, _ := vm.FormatLocalAddress(owner.Addrs[0])
++			nodeID := uStakerTx.Validator.ID().PrefixedString(constants.NodeIDPrefix)
++			vm.Ctx.Log.Info("csv %s,%s,staking,%d,%s,%s\n", txID, addr, stakerTx.Reward, nodeID, getZulu(currentTime))
+ 			if err != nil {
+ 				return nil, nil, nil, nil, permError{
+ 					fmt.Errorf("failed to create output: %w", err),
+@@ -277,6 +289,11 @@ func (tx *UnsignedRewardValidatorTx) SemanticVerify(
+ 		// Reward the delegator here
+ 		if delegatorReward > 0 {
+ 			outIntf, err := vm.fx.CreateOutput(delegatorReward, uStakerTx.RewardsOwner)
++			txID := uStakerTx.ID().String()
++			owner, _ := uStakerTx.RewardsOwner.(*secp256k1fx.OutputOwners)
++			addr, _ := vm.FormatLocalAddress(owner.Addrs[0])
++			nodeID := uStakerTx.Validator.ID().PrefixedString(constants.NodeIDPrefix)
++			vm.Ctx.Log.Info("csv %s,%s,delegator,%d,%s,%s\n", txID, addr, delegatorReward, nodeID, getZulu(currentTime))
+ 			if err != nil {
+ 				return nil, nil, nil, nil, permError{
+ 					fmt.Errorf("failed to create output: %w", err),
+@@ -305,6 +322,11 @@ func (tx *UnsignedRewardValidatorTx) SemanticVerify(
+ 		// Reward the delegatee here
+ 		if delegateeReward > 0 {
+ 			outIntf, err := vm.fx.CreateOutput(delegateeReward, vdr.RewardsOwner)
++			txID := uStakerTx.ID().String()
++			owner, _ := vdr.RewardsOwner.(*secp256k1fx.OutputOwners)
++			addr, _ := vm.FormatLocalAddress(owner.Addrs[0])
++			nodeID := uStakerTx.Validator.ID().PrefixedString(constants.NodeIDPrefix)
++			vm.Ctx.Log.Info("csv %s,%s,delegatee,%d,%s,%s\n", txID, addr, delegateeReward, nodeID, getZulu(currentTime))
+ 			if err != nil {
+ 				return nil, nil, nil, nil, permError{
+ 					fmt.Errorf("failed to create output: %w", err),
