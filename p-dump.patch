@@ -1,5 +1,5 @@
 diff --git a/vms/platformvm/proposal_block.go b/vms/platformvm/proposal_block.go
-index 97043862..5f644dd6 100644
+index 97043862..64fa5871 100644
 --- a/vms/platformvm/proposal_block.go
 +++ b/vms/platformvm/proposal_block.go
 @@ -131,6 +131,9 @@ func (pb *ProposalBlock) Verify() error {
@@ -7,13 +7,13 @@ index 97043862..5f644dd6 100644
  
  	var err TxError
 +	if _, ok := tx.(*UnsignedRewardValidatorTx); ok {
-+		pb.vm.Ctx.Log.Info("csv # block,%d,,,,\n", pb.Height())
++		pb.vm.Ctx.Log.Info("csv ,,,,,,# block,%d\n", pb.Height())
 +	}
  	pb.onCommitDB, pb.onAbortDB, pb.onCommitFunc, pb.onAbortFunc, err = tx.SemanticVerify(pb.vm, pdb, &pb.Tx)
  	if err != nil {
  		pb.vm.droppedTxCache.Put(txID, err.Error()) // cache tx as dropped
 diff --git a/vms/platformvm/reward_validator_tx.go b/vms/platformvm/reward_validator_tx.go
-index 58e2426c..4d801e74 100644
+index 58e2426c..33f1ec6a 100644
 --- a/vms/platformvm/reward_validator_tx.go
 +++ b/vms/platformvm/reward_validator_tx.go
 @@ -14,6 +14,7 @@ import (
@@ -45,7 +45,7 @@ index 58e2426c..4d801e74 100644
 +			owner, _ := uStakerTx.RewardsOwner.(*secp256k1fx.OutputOwners)
 +			addr, _ := vm.FormatLocalAddress(owner.Addrs[0])
 +			nodeID := uStakerTx.Validator.ID().PrefixedString(constants.NodeIDPrefix)
-+			vm.Ctx.Log.Info("csv %s,%s,staking,%d,%s,%s\n", txID, addr, stakerTx.Reward, nodeID, getZulu(currentTime))
++			vm.Ctx.Log.Info("csv %s,%s,staking,%d,%s,%s,,\n", txID, addr, stakerTx.Reward, nodeID, getZulu(currentTime))
  			if err != nil {
  				return nil, nil, nil, nil, permError{
  					fmt.Errorf("failed to create output: %w", err),
@@ -57,7 +57,7 @@ index 58e2426c..4d801e74 100644
 +			owner, _ := uStakerTx.RewardsOwner.(*secp256k1fx.OutputOwners)
 +			addr, _ := vm.FormatLocalAddress(owner.Addrs[0])
 +			nodeID := uStakerTx.Validator.ID().PrefixedString(constants.NodeIDPrefix)
-+			vm.Ctx.Log.Info("csv %s,%s,delegator,%d,%s,%s\n", txID, addr, delegatorReward, nodeID, getZulu(currentTime))
++			vm.Ctx.Log.Info("csv %s,%s,delegator,%d,%s,%s,,\n", txID, addr, delegatorReward, nodeID, getZulu(currentTime))
  			if err != nil {
  				return nil, nil, nil, nil, permError{
  					fmt.Errorf("failed to create output: %w", err),
@@ -69,7 +69,7 @@ index 58e2426c..4d801e74 100644
 +			owner, _ := vdr.RewardsOwner.(*secp256k1fx.OutputOwners)
 +			addr, _ := vm.FormatLocalAddress(owner.Addrs[0])
 +			nodeID := uStakerTx.Validator.ID().PrefixedString(constants.NodeIDPrefix)
-+			vm.Ctx.Log.Info("csv %s,%s,delegatee,%d,%s,%s\n", txID, addr, delegateeReward, nodeID, getZulu(currentTime))
++			vm.Ctx.Log.Info("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentTime))
  			if err != nil {
  				return nil, nil, nil, nil, permError{
  					fmt.Errorf("failed to create output: %w", err),
