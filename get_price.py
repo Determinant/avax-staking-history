@@ -13,8 +13,11 @@ if __name__ == "__main__":
         if len(ps) == 0:
             resp = requests.get('https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=AVAX_USDT&from={start}&to={end}&interval=1m'.format(start=int(start.timestamp()), end=int(end.timestamp())))
             data = resp.json()
-            ps = [(float(d[3])+float(d[4]))/2 for d in data]
-        ts = [int(d[0]) for d in data]
-        ts.sort()
-        timestamps=(datetime.utcfromtimestamp(int(data[0][0])), datetime.utcfromtimestamp(int(data[-1][0])))
-        print("{},{:2f},{},{}".format(line.strip(), sum(ps)/len(ps), timestamps[0].strftime('%Y-%m-%dT%H:%M:%SZ'), timestamps[1].strftime('%Y-%m-%dT%H:%M:%SZ')))
+            if 'label' not in data:
+                ps = [(float(d[3])+float(d[4]))/2 for d in data]
+        #ts = [int(d[0]) for d in data]
+        #ts.sort()
+        timestamps=("-", "-")
+        if len(ps) > 0:
+            timestamps=(datetime.utcfromtimestamp(int(data[0][0])).strftime('%Y-%m-%dT%H:%M:%SZ'), datetime.utcfromtimestamp(int(data[-1][0])).strftime('%Y-%m-%dT%H:%M:%SZ'))
+        print("{},{},{},{}".format(line.strip(), "{:2f}".format(sum(ps)/len(ps)) if len(ps) > 0 else "", timestamps[0], timestamps[1]))

@@ -1,3 +1,9 @@
+All Staking History Data in CSVs
+--------------------------------
+NOTE: these CSVs are comprehensive and also include those staking/delegation
+operations whose uptime was not enough to finally redeem the reward.
+https://drive.google.com/drive/folders/1rjrx7sp4Y4iDSAI_ZS3Ffduhg9Qk8pp1
+
 How I Generated This Data
 -------------------------
 
