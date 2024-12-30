@@ -7,7 +7,7 @@ if __name__ == "__main__":
     for line in sys.stdin.readlines():
         start = datetime.fromisoformat(line.split(',')[col].strip())
         end = start + timedelta(minutes=10)
-        resp = requests.get("https://api.pro.coinbase.com/products/AVAX-USD/candles?start={start}&end={end}&granularity=60".format(start=start.strftime('%Y-%m-%dT%H:%M:%SZ'), end=end.strftime('%Y-%m-%dT%H:%M:%SZ')))
+        resp = requests.get("https://api.exchange.coinbase.com/products/AVAX-USD/candles?start={start}&end={end}&granularity=60".format(start=start.strftime('%Y-%m-%dT%H:%M:%SZ'), end=end.strftime('%Y-%m-%dT%H:%M:%SZ')))
         data = resp.json()
         ps = [(d[2]+d[1])/2 for d in data]
         if len(ps) == 0:

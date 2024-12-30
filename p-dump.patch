@@ -1,36 +1,28 @@
 diff --git a/vms/platformvm/block/executor/block.go b/vms/platformvm/block/executor/block.go
-index 5cd5a02f7..b4831551c 100644
+index f6ab33883..5bc320d52 100644
 --- a/vms/platformvm/block/executor/block.go
 +++ b/vms/platformvm/block/executor/block.go
-@@ -6,6 +6,7 @@ package executor
- import (
- 	"context"
- 	"time"
-+	"fmt"
- 
- 	"go.uber.org/zap"
- 
-@@ -27,6 +28,7 @@ type Block struct {
+@@ -51,6 +51,7 @@ func (*Block) ShouldVerifyWithContext(context.Context) (bool, error) {
  }
  
- func (b *Block) Verify(context.Context) error {
+ func (b *Block) VerifyWithContext(ctx context.Context, blockContext *smblock.Context) error {
 +	b.manager.ctx.Log.Info(fmt.Sprintf("csv ,,,,,,# block,%d\n", b.Height()))
  	blkID := b.ID()
- 	if _, ok := b.manager.blkIDToState[blkID]; ok {
- 		// This block has already been verified.
+ 	blkState, previouslyExecuted := b.manager.blkIDToState[blkID]
+ 	warpAlreadyVerified := previouslyExecuted && blkState.verifiedHeights.Contains(blockContext.PChainHeight)
 diff --git a/vms/platformvm/txs/executor/proposal_tx_executor.go b/vms/platformvm/txs/executor/proposal_tx_executor.go
-index 294e01486..c4ac121e7 100644
+index f7f965db7..1defdeae3 100644
 --- a/vms/platformvm/txs/executor/proposal_tx_executor.go
 +++ b/vms/platformvm/txs/executor/proposal_tx_executor.go
-@@ -16,6 +16,7 @@ import (
- 	"github.com/ava-labs/avalanchego/vms/platformvm/reward"
+@@ -17,6 +17,7 @@ import (
  	"github.com/ava-labs/avalanchego/vms/platformvm/state"
  	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
+ 	"github.com/ava-labs/avalanchego/vms/platformvm/txs/fee"
 +	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
  )
  
  const (
-@@ -42,6 +43,12 @@ var (
+@@ -42,6 +43,13 @@ var (
  	ErrAdvanceTimeTxIssuedAfterBanff = errors.New("AdvanceTimeTx issued after Banff")
  )
  
@@ -40,54 +32,55 @@ index 294e01486..c4ac121e7 100644
 +	return t.Format(time.RFC3339)
 +}
 +
- type ProposalTxExecutor struct {
- 	// inputs, to be filled before visitor methods are called
- 	*Backend
-@@ -405,6 +412,11 @@ func (e *ProposalTxExecutor) rewardValidatorTx(uValidatorTx txs.ValidatorTx, val
++
+ // ProposalTx executes the proposal transaction [tx].
+ //
+ // [onCommitState] will be modified to reflect the changes made to the state if
+@@ -445,6 +453,11 @@ func (e *proposalTxExecutor) rewardValidatorTx(uValidatorTx txs.ValidatorTx, val
  	if reward > 0 {
  		validationRewardsOwner := uValidatorTx.ValidationRewardsOwner()
- 		outIntf, err := e.Fx.CreateOutput(reward, validationRewardsOwner)
+ 		outIntf, err := e.backend.Fx.CreateOutput(reward, validationRewardsOwner)
 +		owner, _ := validationRewardsOwner.(*secp256k1fx.OutputOwners)
-+		addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++		addr, _ := avax.NewAddressManager(e.backend.Ctx).FormatLocalAddress(owner.Addrs[0])
 +		nodeID := validator.NodeID.String()
-+    	currentChainTime := e.OnCommitState.GetTimestamp()
-+		e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,staking,%d,%s,%s,,\n", txID, addr, validator.PotentialReward, nodeID, getZulu(currentChainTime)))
++		currentChainTime := e.onCommitState.GetTimestamp()
++		e.backend.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,staking,%d,%s,%s,,\n", txID, addr, validator.PotentialReward, nodeID, getZulu(currentChainTime)))
  		if err != nil {
  			return fmt.Errorf("failed to create output: %w", err)
  		}
-@@ -442,6 +454,11 @@ func (e *ProposalTxExecutor) rewardValidatorTx(uValidatorTx txs.ValidatorTx, val
+@@ -482,6 +495,11 @@ func (e *proposalTxExecutor) rewardValidatorTx(uValidatorTx txs.ValidatorTx, val
  
  	delegationRewardsOwner := uValidatorTx.DelegationRewardsOwner()
- 	outIntf, err := e.Fx.CreateOutput(delegateeReward, delegationRewardsOwner)
+ 	outIntf, err := e.backend.Fx.CreateOutput(delegateeReward, delegationRewardsOwner)
 +	owner, _ := delegationRewardsOwner.(*secp256k1fx.OutputOwners)
-+	addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++	addr, _ := avax.NewAddressManager(e.backend.Ctx).FormatLocalAddress(owner.Addrs[0])
 +	nodeID := validator.NodeID.String()
-+    currentChainTime := e.OnCommitState.GetTimestamp()
-+	e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentChainTime)))
++    currentChainTime := e.onCommitState.GetTimestamp()
++	e.backend.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentChainTime)))
  	if err != nil {
  		return fmt.Errorf("failed to create output: %w", err)
  	}
-@@ -531,6 +548,11 @@ func (e *ProposalTxExecutor) rewardDelegatorTx(uDelegatorTx txs.DelegatorTx, del
+@@ -571,6 +589,11 @@ func (e *proposalTxExecutor) rewardDelegatorTx(uDelegatorTx txs.DelegatorTx, del
  	if reward > 0 {
  		rewardsOwner := uDelegatorTx.RewardsOwner()
- 		outIntf, err := e.Fx.CreateOutput(reward, rewardsOwner)
+ 		outIntf, err := e.backend.Fx.CreateOutput(reward, rewardsOwner)
 +		owner, _ := rewardsOwner.(*secp256k1fx.OutputOwners)
-+		addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++		addr, _ := avax.NewAddressManager(e.backend.Ctx).FormatLocalAddress(owner.Addrs[0])
 +		nodeID := delegator.NodeID.String()
-+        currentChainTime := e.OnCommitState.GetTimestamp()
-+		e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegator,%d,%s,%s,,\n", txID, addr, delegatorReward, nodeID, getZulu(currentChainTime)))
++        currentChainTime := e.onCommitState.GetTimestamp()
++		e.backend.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegator,%d,%s,%s,,\n", txID, addr, delegatorReward, nodeID, getZulu(currentChainTime)))
  		if err != nil {
  			return fmt.Errorf("failed to create output: %w", err)
  		}
-@@ -587,6 +609,11 @@ func (e *ProposalTxExecutor) rewardDelegatorTx(uDelegatorTx txs.DelegatorTx, del
+@@ -627,6 +650,11 @@ func (e *proposalTxExecutor) rewardDelegatorTx(uDelegatorTx txs.DelegatorTx, del
  		// [delegateeReward] immediately.
  		delegationRewardsOwner := vdrTx.DelegationRewardsOwner()
- 		outIntf, err := e.Fx.CreateOutput(delegateeReward, delegationRewardsOwner)
+ 		outIntf, err := e.backend.Fx.CreateOutput(delegateeReward, delegationRewardsOwner)
 +		owner, _ := delegationRewardsOwner.(*secp256k1fx.OutputOwners)
-+		addr, _ := avax.NewAddressManager(e.Ctx).FormatLocalAddress(owner.Addrs[0])
++		addr, _ := avax.NewAddressManager(e.backend.Ctx).FormatLocalAddress(owner.Addrs[0])
 +		nodeID := delegator.NodeID.String()
-+        currentChainTime := e.OnCommitState.GetTimestamp()
-+		e.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentChainTime)))
++        currentChainTime := e.onCommitState.GetTimestamp()
++		e.backend.Ctx.Log.Info(fmt.Sprintf("csv %s,%s,delegatee,%d,%s,%s,,\n", txID, addr, delegateeReward, nodeID, getZulu(currentChainTime)))
  		if err != nil {
  			return fmt.Errorf("failed to create output: %w", err)
  		}
