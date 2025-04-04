@@ -1,8 +1,16 @@
 diff --git a/vms/platformvm/block/executor/block.go b/vms/platformvm/block/executor/block.go
-index f6ab33883..5bc320d52 100644
+index b5f7e4630..fb128a620 100644
 --- a/vms/platformvm/block/executor/block.go
 +++ b/vms/platformvm/block/executor/block.go
-@@ -51,6 +51,7 @@ func (*Block) ShouldVerifyWithContext(context.Context) (bool, error) {
+@@ -5,6 +5,7 @@ package executor
+ 
+ import (
+ 	"context"
++	"fmt"
+ 	"time"
+ 
+ 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
+@@ -30,6 +31,7 @@ func (*Block) ShouldVerifyWithContext(context.Context) (bool, error) {
  }
  
  func (b *Block) VerifyWithContext(ctx context.Context, blockContext *smblock.Context) error {
